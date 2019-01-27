@@ -54,14 +54,13 @@ class MovieAward(Base):
     award_id = Column(String, primary_key=True)
     award_category = Column(String, primary_key=True)
     movie_imdb_id = Column(String, primary_key=True)
+    person_imdb_id = Column(String, primary_key=True)
+    award_date = Column(Date, primary_key=True)
+    winner = Column(Boolean, primary_key=True)
     award_name = Column(String)
-    person_imdb_id = Column(String)
     person_name = Column(String)
-    winner = Column(Boolean)
-    award_date = Column(Date)
 
 
-<<<<<<< HEAD
 class Award(Base):
     __tablename__ = 'awards'
     award_id = Column(String, primary_key=True)
@@ -70,8 +69,6 @@ class Award(Base):
     end_year = Column(Integer)
     date_timedelta = Column(Integer)
 
-=======
->>>>>>> b52f27f07afdd7bdf23ecea29508931e4c7f9a90
 class RTReview(Base):
     __tablename__ = 'rt_reviews'
     type = Column(String, primary_key=True)

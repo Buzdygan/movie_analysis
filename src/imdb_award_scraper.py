@@ -1,5 +1,6 @@
 import re
 import datetime
+import traceback
 import IPython
 import requests as rq
 from urllib.parse import urlparse
@@ -46,23 +47,25 @@ class IMDBAwardScraper(object):
             driver = webdriver.Chrome()
             driver.get(self.award_url)
             soup = BeautifulSoup(driver.page_source, 'lxml')
-            results = self.scrape_soup(soup):
+            results = self.scrape_soup(soup)
             if results is not None:
-                print(f"Scraping {self.award_url}, successfull, saving log")
                 self.save_results(results)
                 ScrapingLog.add_log(self.award_url)
+                print(f"Scraping {self.award_url}, successfull")
         else:
             print(f"Skip scraping {self.award_url}: Already scraped")
 
     def scrape_soup(self, soup):
         scraped = []
-        for award in soup.findChildren('div', {'class': 'event-widgets__award-category'}):
-            category_name = award.find('div', {'class': 'event-widgets__award-category-name'}).text
-            for nominee in award.findChildren('div', {'class': 'event-widgets__nomination-details'}):
+        for category in soup.findChildren('div', {'class': 'event-widgets__award-category'}):
+            cname = category.find('div', {'class': 'event-widgets__award-category-name'})
+            if not cname:
+                continue
+            category_name = cname.text
+            for nominee in category.findChildren('div', {'class': 'event-widgets__nomination-details'}):
                 for movie_imdb_id, person_id, person_name, winner in self.extract_nominee_info(nominee):
                     scraped.append((category_name, movie_imdb_id, person_id, person_name, winner))
-            break
-        return scraped 
+        return set(scraped)
 
     def extract_nominee_info(self, base_nominee):
         movies = []
@@ -95,6 +98,7 @@ with session_scope() as session:
         for year in range(award.start_year, award.end_year + 1):
             try:
                 print(f"Scraping {award.award_name} {year}")
-                IMDBAwardScraper(award.award_id, year, award.award_name, award.date_timedelta)
+                IMDBAwardScraper(award.award_id, year, award.award_name, award.date_timedelta).scrape()
             except Exception as e:
                 print(f"ERROR, problem with {award.award_name} {year}, Exception: {e}")
+                traceback.print_exc()
