@@ -10,8 +10,6 @@ from selenium import webdriver
 from storage import MovieAward, ScrapingLog, Award, session_scope
 from constants import IMDB_BASE_URL, IMDB_TYPE_MOVIE, IMDB_TYPE_PERSON
 
-def get_movie(imdb_id):
-    pass
 
 class IMDBAwardScraper(object):
     def __init__(self, award_id, year, award_name, award_date_timedelta=0):
@@ -93,12 +91,15 @@ class IMDBAwardScraper(object):
                 yield movie_imdb_id, person_id, person_name, winner
 
 
-with session_scope() as session:
-    for award in session.query(Award).all():
-        for year in range(award.start_year, award.end_year + 1):
-            try:
-                print(f"Scraping {award.award_name} {year}")
-                IMDBAwardScraper(award.award_id, year, award.award_name, award.date_timedelta).scrape()
-            except Exception as e:
-                print(f"ERROR, problem with {award.award_name} {year}, Exception: {e}")
-                traceback.print_exc()
+def scrape_imdb_awards():
+    with session_scope() as session:
+        for award in session.query(Award).all():
+            for year in range(award.start_year, award.end_year + 1):
+                try:
+                    print(f"Scraping {award.award_name} {year}")
+                    IMDBAwardScraper(award.award_id, year, award.award_name, award.date_timedelta).scrape()
+                except Exception as e:
+                    print(f"ERROR, problem with {award.award_name} {year}, Exception: {e}")
+                    traceback.print_exc()
+
+scrape_imdb_awards()
