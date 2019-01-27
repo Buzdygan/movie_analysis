@@ -61,6 +61,7 @@ class MovieAward(Base):
     award_date = Column(Date)
 
 
+<<<<<<< HEAD
 class Award(Base):
     __tablename__ = 'awards'
     award_id = Column(String, primary_key=True)
@@ -69,6 +70,8 @@ class Award(Base):
     end_year = Column(Integer)
     date_timedelta = Column(Integer)
 
+=======
+>>>>>>> b52f27f07afdd7bdf23ecea29508931e4c7f9a90
 class RTReview(Base):
     __tablename__ = 'rt_reviews'
     type = Column(String, primary_key=True)
