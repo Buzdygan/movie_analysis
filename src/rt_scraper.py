@@ -1,13 +1,8 @@
-from bs4 import BeautifulSoup
 import requests as rq 
-
 from collections import namedtuple
+from bs4 import BeautifulSoup
 
-Review = namedtuple('Review', ['movie_url', 'reviewer_type', 'reviewer_name', 'reviewer_url', 'rating', 'text', 'date'])
-
-TYPE_CRITIC = 'critic'
-TYPE_USER = 'user'
-RT_BASE_URL = "https://www.rottentomatoes.com"
+from constants import Review, TYPE_CRITIC, TYPE_USER, RT_BASE_URL
 
 
 class BaseReviews(object):
