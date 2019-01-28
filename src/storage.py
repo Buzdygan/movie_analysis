@@ -74,10 +74,11 @@ class RTReview(Base):
     type = Column(String, primary_key=True)
     movie_imdb_id = Column(String, primary_key=True)
     reviewer_url = Column(String, primary_key=True)
+    review_date = Column(Date, primary_key=True)
     reviewer_name = Column(String)
-    rating = Column(Integer)
+    fresh = Column(Boolean)
+    original_score = Column(Float)
     review_text = Column(Text)
-    review_date = Column(Date)
 
 
 class ScrapingLog(Base):
