@@ -3,6 +3,7 @@ import datetime
 import requests as rq 
 import dateparser
 import traceback
+from itertools import groupby
 from collections import namedtuple
 from bs4 import BeautifulSoup
 
@@ -19,6 +20,7 @@ class BaseReviews(object):
         reviews = []
         for page_num in range(1, 1000):
             page_url = self.getReviewUrl(page_num) 
+            print(f"Getting url {page_url}")
             resp = rq.get(page_url)
             if not resp.ok:
                 print(f"Finish scraping, page {page_num} does not exist")
@@ -26,6 +28,8 @@ class BaseReviews(object):
             soup = BeautifulSoup(resp.text, 'lxml')
             reviews += self.getReviewsFromPage(soup)
             print(f"Scraped {page_url}")
+            if page_num > 50:
+                raise Exception(f"Something's wrong, page already on {page_num}")
         return reviews
 
     def getReviewUrl(self, page_num=1):
@@ -71,7 +75,7 @@ class CriticReviews(BaseReviews):
         return review_list
 
     def parse_score(self, score_text):
-        score_text = score_text.strip()
+        score_text = score_text.strip().replace("'", "")
         try:
             if '/' in score_text:
                 n, d = score_text.split('/')
@@ -113,18 +117,35 @@ class RTMovie:
     def criticReviews(self):
         return CriticReviews(self.url).getReviews()
 
+    def removeDuplicatedReviews(self, reviews):
+        deduplicated = []
+        key = lambda x: (x.reviewer_type, x.reviewer_url, x.reviewer_name, x.date)
+        reviews.sort(key=key)
+        for _, group in groupby(reviews, key=key):
+            items = list(group)
+            if len(items) == 1:
+                deduplicated += items 
+        return deduplicated
+
     def save_reviews(self, reviews):
-        with session_scope() as session:
-            session.bulk_save_objects([RTReview(
-                type=r.reviewer_type,
-                movie_imdb_id=self.imdb_id,
-                reviewer_url=r.reviewer_url,
-                reviewer_name=r.reviewer_name,
-                fresh=r.fresh,
-                original_score=r.original_score,
-                review_text=r.text,
-                review_date=r.date
-            ) for r in reviews])
+        reviews = self.removeDuplicatedReviews(reviews)
+        try:
+            with session_scope() as session:
+                session.bulk_save_objects([RTReview(
+                    type=r.reviewer_type,
+                    movie_imdb_id=self.imdb_id,
+                    reviewer_url=r.reviewer_url,
+                    reviewer_name=r.reviewer_name,
+                    fresh=r.fresh,
+                    original_score=r.original_score,
+                    review_text=r.text,
+                    review_date=r.date
+                ) for r in reviews])
+        except:
+            print(f"Problem saving")
+            for r in sorted(reviews, key=lambda x: (x.reviewer_type, x.reviewer_url, x.date)):
+                print(f"{r.reviewer_url}, {r.date}, {r.reviewer_name}, {r.fresh}, {r.original_score} {r.text}")
+            raise
 
     def scrape(self, update_after=None):
         scrape_id = f"rt_{self.imdb_id}_critic_reviews"
@@ -153,6 +174,7 @@ def scrape_oscar_movies():
                                        .values(Movie.imdb_id, Movie.rt_url))
 
     for imdb_id, rt_url in movies_to_scrape:
+        print(f"Start scraping {rt_url}, id: {imdb_id}")
         RTMovie(imdb_id, rt_url).scrape()
         print(f"Scraped {rt_url}")
 
