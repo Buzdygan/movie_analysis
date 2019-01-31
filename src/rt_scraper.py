@@ -174,10 +174,9 @@ def scrape_oscar_movies():
                                        .values(Movie.imdb_id, Movie.rt_url))
 
     for imdb_id, rt_url in movies_to_scrape:
-        print(f"Start scraping {rt_url}, id: {imdb_id}")
-        RTMovie(imdb_id, rt_url).scrape()
-        print(f"Scraped {rt_url}")
+        if rt_url is not None:
+            print(f"Start scraping {rt_url}, id: {imdb_id}")
+            RTMovie(imdb_id, rt_url).scrape()
+            print(f"Scraped {rt_url}")
 
 scrape_oscar_movies()
-# RTMovie('tt5580390', 'https://www.rottentomatoes.com/m/the_shape_of_water_2017').scrape()
-
