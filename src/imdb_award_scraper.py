@@ -76,14 +76,20 @@ class IMDBAwardScraper(object):
 
     def scrape_soup(self, soup):
         scraped = []
-        for category in soup.findChildren('div', {'class': 'event-widgets__award-category'}):
-            cname = category.find('div', {'class': 'event-widgets__award-category-name'})
-            if not cname:
+        for award in soup.findChildren('div', {'class': 'event-widgets__award'}):
+            aname = award.find('div', {'class': 'event-widgets__award-name'})
+            if not aname:
                 continue
-            category_name = cname.text
-            for nominee in category.findChildren('div', {'class': 'event-widgets__nomination-details'}):
-                for movie_imdb_id, person_id, person_name, winner in self.extract_nominee_info(nominee):
-                    scraped.append((category_name, movie_imdb_id, person_id, person_name, winner))
+            award_name = aname.text
+            for category in award.findChildren('div', {'class': 'event-widgets__award-category'}):
+                cname = category.find('div', {'class': 'event-widgets__award-category-name'})
+                category_name = award_name
+                if cname:
+                    category_name = award_name + ' - ' + cname.text
+                print(f"Scraping {category_name}")
+                for nominee in category.findChildren('div', {'class': 'event-widgets__nomination-details'}):
+                    for movie_imdb_id, person_id, person_name, winner in self.extract_nominee_info(nominee):
+                        scraped.append((category_name, movie_imdb_id, person_id, person_name, winner))
         return set(scraped)
 
     def extract_nominee_info(self, base_nominee):
@@ -115,13 +121,31 @@ class IMDBAwardScraper(object):
                 yield movie_imdb_id, person_id, person_name, winner
 
 
+class IMDBCannesAwardScraper(IMDBAwardScraper):
+    def scrape_soup(self, soup):
+        scraped = []
+        for category in soup.findChildren('div', {'class': 'event-widgets__award'}):
+            cname = category.find('div', {'class': 'event-widgets__award-name'})
+            if not cname:
+                continue
+            category_name = cname.text
+            for nominee in category.findChildren('div', {'class': 'event-widgets__nomination-details'}):
+                for movie_imdb_id, person_id, person_name, winner in self.extract_nominee_info(nominee):
+                    scraped.append((category_name, movie_imdb_id, person_id, person_name, winner))
+        return set(scraped)
+
+SCRAPER_CLS_DICT = {
+    'ev0000147': IMDBCannesAwardScraper
+}
+
 def scrape_imdb_awards():
     with session_scope() as session:
         for award in session.query(Award).all():
             for year in range(award.start_year, award.end_year + 1):
                 try:
                     print(f"Scraping {award.award_name} {year}")
-                    IMDBAwardScraper(award.award_id, year, award.award_name, award.date_timedelta).scrape()
+                    SCRAPER_CLS = SCRAPER_CLS_DICT.get(award.award_id, IMDBAwardScraper)
+                    SCRAPER_CLS(award.award_id, year, award.award_name, award.date_timedelta).scrape()
                 except Exception as e:
                     print(f"ERROR, problem with {award.award_name} {year}, Exception: {e}")
                     traceback.print_exc()
