@@ -11,7 +11,6 @@ from sqlalchemy import create_engine, Column, Integer, Float, Boolean, String, T
 from sqlalchemy_utils.types import JSONType
 
 from constants import DB_PATH
-from utils import add_score
 
 
 engine = create_engine(DB_PATH)
@@ -108,34 +107,3 @@ class ScrapingLog(Base):
 
 
 Base.metadata.create_all(engine)
-
-
-
-
-def get_relevant_df(category='Best Motion Picture of the Year'):
-    with session_scope() as session:
-        movies_df = pd.read_sql(session.query(Movie).statement, session.bind)
-        movie_awards_df = pd.read_sql(session.query(MovieAward).statement, session.bind)
-        reviews_df = pd.read_sql(session.query(RTReview).statement, session.bind)
-
-    madf = movie_awards_df[movie_awards_df.award_category == category].drop(['person_imdb_id',
-                                                                             'person_name',
-                                                                             'award_id',
-                                                                             'award_name',
-                                                                             'award_category'],
-                                                                            axis=1).drop_duplicates()
-    df_ = pd.merge(madf, 
-               movies_df.drop(['release_year', 'countries', 'box_office', 'rt_url'], axis=1),
-               left_on='movie_imdb_id',
-               right_on='imdb_id').drop('imdb_id', axis=1)
-    
-    full_df = pd.merge(df_, reviews_df, on='movie_imdb_id').drop(['movie_imdb_id', 'type', 'reviewer_name'], axis=1)
-
-    # We only consider reviews that were written BEFORE the Oscars.
-    df = full_df[full_df.award_date > full_df.review_date][[
-        'award_date', 'winner', 'title', 'reviewer_url', 'fresh', 'original_score', 'rt_tomato_score', 'rt_audience_score'
-    ]]
-    df['year'] = df.apply(lambda x: x.award_date.year, axis=1)
-    df = df.drop('award_date', axis=1)
-
-    return add_score(df)

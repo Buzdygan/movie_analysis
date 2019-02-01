@@ -1,5 +1,6 @@
 import re
 import datetime
+import dateparser
 import traceback
 import IPython
 import requests as rq
@@ -8,7 +9,27 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 
 from storage import MovieAward, ScrapingLog, Award, session_scope
-from constants import IMDB_BASE_URL, IMDB_TYPE_MOVIE, IMDB_TYPE_PERSON
+from constants import IMDB_BASE_URL, IMDB_TYPE_MOVIE, IMDB_TYPE_PERSON, BLANK_IMDB_ID, BLANK_PERSON_NAME
+
+
+def fix_oscar_dates():
+    soup = BeautifulSoup(rq.get('https://en.wikipedia.org/wiki/List_of_Academy_Awards_ceremonies').text, 'lxml')
+    table = soup.find('table', {'class': 'wikitable'}).find('tbody')
+    table = table.findNext('table', {'class': 'wikitable'}).find('tbody')
+    data = []
+    rows = table.find_all('tr')
+    for row in rows:
+        cols = row.find_all('td')
+        cols = [ele.text.strip() for ele in cols]
+        data.append([ele for ele in cols if ele]) # Get rid of empty values
+
+    dates = [x[1] for x in data[1:] if len(x) >= 2]
+    parsed_dates_dict = {d.year: d.date() for d in [dateparser.parse(date) for date in dates]}
+    with session_scope() as session:
+        for award in session.query(MovieAward).all():
+            award.award_date = parsed_dates_dict.get(award.award_date.year, award.award_date)
+    with session_scope() as session:
+        dates = set([x.award_date for x in session.query(MovieAward).all()])
 
 
 class IMDBAwardScraper(object):
@@ -85,6 +106,9 @@ class IMDBAwardScraper(object):
 
         extract('primary')
         extract('secondary')
+
+        if not people:
+            people.append((BLANK_IMDB_ID, BLANK_PERSON_NAME)) 
 
         for movie_imdb_id in movies:
             for person_id, person_name in people:
