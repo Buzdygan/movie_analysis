@@ -53,14 +53,11 @@ class Movie(Base):
 
 class MovieAward(Base):
     __tablename__ = 'movie_awards'
-    award_id = Column(String, primary_key=True)
     award_category = Column(String, primary_key=True)
-    movie_imdb_id = Column(String, primary_key=True)
-    person_imdb_id = Column(String, primary_key=True)
+    movie_wiki_url = Column(String, primary_key=True)
     award_date = Column(Date, primary_key=True)
     winner = Column(Boolean, primary_key=True)
-    award_name = Column(String)
-    person_name = Column(String)
+    movie_title = Column(String)
 
 
 class Award(Base):
