@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn import preprocessing
 from storage import session_scope, Movie, MovieAward, RTReview
+from constants import AWARD_DICT
 
 
 def get_top_critics_df(df, review_prc=0.75):
@@ -39,6 +40,21 @@ def add_score(relevant_df):
     return joined_df.drop(['fresh_score', 'rotten_score'], axis=1)
 
 
+def get_award_winners_df():
+    REV_AWARD_DICT = {v: k for k, v in AWARD_DICT.items()}
+    with session_scope() as session:
+        movie_awards_df = pd.read_sql(session.query(MovieAward).statement, session.bind)
+
+    df = movie_awards_df[movie_awards_df.award_category.isin(list(AWARD_DICT.values()))]
+    df = df.drop(['person_imdb_id', 'person_name', 'award_id', 'award_name', 'award_date'],
+                 axis=1).drop_duplicates()
+    df = df.pivot(index='movie_imdb_id', columns='award_category', values='winner') \
+           .fillna(-1).applymap(int).reset_index()
+
+    df = df.rename(columns=REV_AWARD_DICT)
+    return df
+
+
 def get_awards_df(category='Best Motion Picture of the Year'):
     with session_scope() as session:
         movies_df = pd.read_sql(session.query(Movie).statement, session.bind)
@@ -62,35 +78,45 @@ def get_relevant_df(category='Best Motion Picture of the Year', min_year=2000):
         reviews_df = pd.read_sql(session.query(RTReview).statement, session.bind)
 
     df_ = get_awards_df(category=category)
-    full_df = pd.merge(df_, reviews_df, on='movie_imdb_id').drop(['movie_imdb_id', 'type', 'reviewer_name'], axis=1)
+    full_df = pd.merge(df_, reviews_df, on='movie_imdb_id').drop(['type', 'reviewer_name'], axis=1)
 
     # We only consider reviews that were written BEFORE the Oscars.
     df = full_df[full_df.award_date > full_df.review_date][[
-        'award_date', 'winner', 'title', 'reviewer_url', 'fresh', 'original_score', 'rt_tomato_score', 'rt_audience_score'
+        'movie_imdb_id', 'award_date', 'winner', 'title', 'reviewer_url', 'fresh', 'original_score', 'rt_tomato_score', 'rt_audience_score'
     ]]
     df['year'] = df.apply(lambda x: x.award_date.year, axis=1)
     df = df.drop('award_date', axis=1)
     df = df[df.year >= min_year]
-    df = df.drop_duplicates(subset=['reviewer_url', 'title'])
+    df = df.drop_duplicates(subset=['reviewer_url', 'movie_imdb_id'])
     return add_score(df)
+
+
+def get_title_map():
+    with session_scope() as session:
+        movies_df = pd.read_sql(session.query(Movie).statement, session.bind)
+    return movies_df.rename(columns={'imdb_id': 'movie_imdb_id'})[['title', 'movie_imdb_id']]
 
 
 def get_movie_df(category='Best Motion Picture of the Year', review_prc=0.75, min_year=2000):
     top_df = get_top_critics_df(get_relevant_df(category=category, min_year=min_year), review_prc=review_prc)
-    critic_df = top_df.pivot(index='title', columns='reviewer_url', values='score').fillna(0).reset_index()
+    critic_df = top_df.pivot(index='movie_imdb_id', columns='reviewer_url', values='score').fillna(0).reset_index()
+    awards_df = get_award_winners_df()
+    critic_and_awards_df = critic_df.merge(awards_df, on='movie_imdb_id')
 
     awards_df = get_awards_df()
     awards_df['year'] = awards_df.apply(lambda x: x.award_date.year, axis=1)
     awards_df['runtime'] = awards_df.apply(lambda x: int(x.runtime.strip(' min')) / 60, axis=1)
     awards_df['winner'] = awards_df.apply(lambda x: int(x['winner']), axis=1)
-    awards_df = awards_df[['winner', 'year', 'title', 'runtime', 'genres']]
+    awards_df = awards_df[['winner', 'year', 'movie_imdb_id', 'runtime', 'genres']]
 
     gdf = awards_df.genres.apply(pd.Series) \
                .merge(awards_df, left_index=True, right_index=True) \
                .drop('genres', axis=1) \
-               .melt(id_vars=['year', 'title', 'runtime', 'winner'], value_name='genre') \
+               .melt(id_vars=['year', 'movie_imdb_id', 'runtime', 'winner'], value_name='genre') \
                .drop('variable', axis=1) \
                .dropna()
     gdf['oner'] = 1
-    genre_df = gdf.pivot(index='title', columns='genre', values='oner').fillna(0).reset_index()
-    return awards_df.merge(genre_df, on='title').drop('genres', axis=1).merge(critic_df, on='title')
+    genre_df = gdf.pivot(index='movie_imdb_id', columns='genre', values='oner').fillna(0).reset_index()
+    res_df = awards_df.merge(genre_df, on='movie_imdb_id').drop('genres', axis=1).merge(critic_and_awards_df, on='movie_imdb_id')
+    title_map_df = get_title_map()
+    return res_df.merge(title_map_df, on='movie_imdb_id')

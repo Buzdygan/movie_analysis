@@ -41,6 +41,9 @@ class IMDBAwardScraper(object):
 
     @property
     def award_url(self):
+        if self.award_name == 'Critics Choice' and self.year == 2017:
+            return 'https://www.imdb.com/event/ev0000133/2016/2/'
+
         return f'https://www.imdb.com/event/{self.award_id}/{self.year}/'
 
     def save_results(self, results):

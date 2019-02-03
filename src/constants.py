@@ -24,6 +24,24 @@ GLOBES_BEST_DRAMA_CATEGORY = 'Golden Globe - Best Motion Picture - Drama'
 GLOBES_BEST_COMEDY_CATEGORY = 'Golden Globe - Best Motion Picture - Comedy or Musical'
 GLOBES_BEST_FOREIGN_FILM_CATEGORY = 'Golden Globe - Best Foreign Language Film'
 BAFTA_BEST_FILM_CATEGORY = 'BAFTA Film Award - Best Film'
+BAFTA_BEST_NON_ENGLISH_FILM_CATEGORY = 'BAFTA Film Award - Best Film not in the English Language'
+CRITICS_BEST_FILM_CATEGORY = 'Critics Choice Award - Best Picture'
+CRITICS_BEST_FOREIGN_FILM_CATEGORY = 'Critics Choice Award - Best Foreign Language Film'
+
+AWARD_DICT = {
+    'venice': VENICE_BEST_FILM_CATEGORY,
+    'cannes': CANNES_BEST_FILM_CATEGORY,
+    'pga': PGA_BEST_FILM_CATEGORY,
+    'sag': SAG_BEST_FILM_CATEGORY,
+    'dga': DGA_BEST_FILM_CATEGORY,
+    'globes_drama': GLOBES_BEST_DRAMA_CATEGORY,
+    'globes_comedy': GLOBES_BEST_COMEDY_CATEGORY,
+    'globes_foreign': GLOBES_BEST_FOREIGN_FILM_CATEGORY,
+    'bafta': BAFTA_BEST_FILM_CATEGORY,
+    'bafta_nonenglish': BAFTA_BEST_NON_ENGLISH_FILM_CATEGORY,
+    'critics': CRITICS_BEST_FILM_CATEGORY,
+    'critics_foreign': CRITICS_BEST_FOREIGN_FILM_CATEGORY,
+}
 
 Review = namedtuple('Review', ['movie_url', 'reviewer_type', 'reviewer_name', 'reviewer_url', 'fresh', 'original_score', 'text', 'date'])
 
