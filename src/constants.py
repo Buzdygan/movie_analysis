@@ -6,6 +6,7 @@ from constants_local import OMDB_API_KEY
 
 DB_PATH = 'sqlite:////Users/jakubtlalka/it/ds/projects/movies/movies.sqlite'
 
+WIKI_BASE = 'https://en.wikipedia.org'
 
 BEST_FILM_CATEGORY = 'Best Motion Picture of the Year'
 BEST_FOREIGN_FILM_CATEGORY = 'Best Foreign Language Film of the Year'

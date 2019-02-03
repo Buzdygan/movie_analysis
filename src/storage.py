@@ -36,6 +36,7 @@ class Movie(Base):
     __tablename__ = 'movies'
 
     imdb_id = Column(String, primary_key=True)
+    movie_wiki_url = Column(String)
     title = Column(String)
     release_year = Column(Integer)
     directors = Column(JSONType)

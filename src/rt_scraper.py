@@ -7,7 +7,7 @@ from itertools import groupby
 from collections import namedtuple
 from bs4 import BeautifulSoup
 
-from constants import Review, TYPE_CRITIC, TYPE_USER, RT_BASE_URL
+from constants import Review, TYPE_CRITIC, TYPE_USER, RT_BASE_URL, OSCARS_BEST_FILM
 from storage import session_scope, Movie, MovieAward, ScrapingLog, RTReview
 
 
@@ -168,8 +168,8 @@ class RTMovie:
 def scrape_oscar_movies():
     with session_scope() as session:
         movies_to_scrape = list(session.query(Movie) \
-                                       .join(MovieAward, Movie.imdb_id==MovieAward.movie_imdb_id) \
-                                       .filter(MovieAward.award_category.in_(['Best Motion Picture of the Year', 'Best Picture'])) \
+                                       .join(MovieAward, Movie.movie_wiki_url==MovieAward.movie_wiki_url) \
+                                       .filter(MovieAward.award_category==OSCARS_BEST_FILM) \
                                        .distinct() \
                                        .values(Movie.imdb_id, Movie.rt_url))
 
