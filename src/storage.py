@@ -32,11 +32,18 @@ def session_scope():
         session.close()
 
 
-class Movie(Base):
+class PandasDfMixin():
+    @classmethod
+    def get_pandas_df(cls):
+        with session_scope() as session:
+            return pd.read_sql(session.query(cls).statement, session.bind) 
+
+
+class Movie(PandasDfMixin, Base):
     __tablename__ = 'movies'
 
     imdb_id = Column(String, primary_key=True)
-    movie_wiki_url = Column(String)
+    movie_wiki_url = Column(String, primary_key=True)
     title = Column(String)
     release_year = Column(Integer)
     directors = Column(JSONType)
@@ -52,7 +59,7 @@ class Movie(Base):
     rt_audience_score = Column(Integer)
 
 
-class MovieAward(Base):
+class MovieAward(PandasDfMixin, Base):
     __tablename__ = 'movie_awards'
     award_category = Column(String, primary_key=True)
     movie_wiki_url = Column(String, primary_key=True)
@@ -61,7 +68,7 @@ class MovieAward(Base):
     movie_title = Column(String)
 
 
-class Award(Base):
+class Award(PandasDfMixin, Base):
     __tablename__ = 'awards'
     award_id = Column(String, primary_key=True)
     award_name = Column(String)
@@ -69,7 +76,7 @@ class Award(Base):
     end_year = Column(Integer)
     date_timedelta = Column(Integer)
 
-class RTReview(Base):
+class RTReview(PandasDfMixin, Base):
     __tablename__ = 'rt_reviews'
     type = Column(String, primary_key=True)
     movie_imdb_id = Column(String, primary_key=True)

@@ -45,8 +45,7 @@ def get_award_winners_df(remove_oscars=True):
         movie_awards_df = pd.read_sql(session.query(MovieAward).statement, session.bind)
 
     df = movie_awards_df.drop(['award_date'], axis=1).drop_duplicates()
-    if remove_oscars:
-        df = df[df.award_category != OSCARS_BEST_FILM]
+    df = df[df.award_category != OSCARS_BEST_FILM]
     df = df.pivot(index='movie_wiki_url', columns='award_category', values='winner') \
            .fillna(-1).applymap(int).reset_index()
 
@@ -62,8 +61,7 @@ def get_awards_df(category=OSCARS_BEST_FILM):
                                                                             axis=1).drop_duplicates()
     df = pd.merge(madf, 
                   movies_df.drop(['release_year', 'countries', 'box_office', 'rt_url'], axis=1),
-                  left_on='movie_wiki_url',
-                  right_on='movie_wiki_url').rename(columns={'imdb_id': 'movie_imdb_id'})
+                  on='movie_wiki_url').rename(columns={'imdb_id': 'movie_imdb_id'})
     return df
 
 
@@ -92,10 +90,10 @@ def get_title_map():
     return movies_df[['title', 'movie_wiki_url']]
 
 
-def get_movie_df(category=OSCARS_BEST_FILM, review_prc=0.75, min_year=2000):
+def get_movie_df(category=OSCARS_BEST_FILM, review_prc=0.75, min_year=2000, with_critics=True):
+    awards_df = get_award_winners_df()
     top_df = get_top_critics_df(get_relevant_df(category=category, min_year=min_year), review_prc=review_prc)
     critic_df = top_df.pivot(index='movie_wiki_url', columns='reviewer_url', values='score').fillna(0).reset_index()
-    awards_df = get_award_winners_df()
     critic_and_awards_df = critic_df.merge(awards_df, on='movie_wiki_url')
 
     awards_df = get_awards_df()
