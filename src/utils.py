@@ -90,27 +90,20 @@ def get_title_map():
     return movies_df[['title', 'movie_wiki_url']]
 
 
-def get_movie_df(category=OSCARS_BEST_FILM, review_prc=0.75, min_year=2000, with_critics=True):
-    awards_df = get_award_winners_df()
-    top_df = get_top_critics_df(get_relevant_df(category=category, min_year=min_year), review_prc=review_prc)
-    critic_df = top_df.pivot(index='movie_wiki_url', columns='reviewer_url', values='score').fillna(0).reset_index()
-    critic_and_awards_df = critic_df.merge(awards_df, on='movie_wiki_url')
-
-    awards_df = get_awards_df()
+def get_movie_df(category=OSCARS_BEST_FILM, review_prc=0.75):
+    awinners_df = get_award_winners_df()
+    oscars_df = get_awards_df(category=category)
+    awards_df = oscars_df.merge(awinners_df, on='movie_wiki_url')
     awards_df['year'] = awards_df.apply(lambda x: x.award_date.year, axis=1)
-    awards_df['runtime'] = awards_df.apply(lambda x: int(x.runtime.strip(' min')) / 60, axis=1)
-    awards_df['winner'] = awards_df.apply(lambda x: int(x['winner']), axis=1)
-    awards_df = awards_df[['winner', 'year', 'movie_wiki_url', 'runtime', 'genres']]
+    awards_df = awards_df.drop(['award_date', 'movie_title', 'movie_imdb_id', 'directors',
+                                'imdb_votes', 'imdb_rating', 'movie_wiki_url',
+                                'actors', 'runtime', 'genres', 'rt_tomato_score', 'rt_audience_score'], axis=1)
 
-    gdf = awards_df.genres.apply(pd.Series) \
-               .merge(awards_df, left_index=True, right_index=True) \
-               .drop('genres', axis=1) \
-               .melt(id_vars=['year', 'movie_wiki_url', 'runtime', 'winner'], value_name='genre') \
-               .drop('variable', axis=1) \
-               .dropna()
-    gdf['oner'] = 1
-    genre_df = gdf.pivot(index='movie_wiki_url', columns='genre', values='oner').fillna(0).reset_index()
-    res_df = awards_df.merge(genre_df, on='movie_wiki_url').drop('genres', axis=1) \
-                      .merge(critic_and_awards_df, on='movie_wiki_url')
-    title_map_df = get_title_map()
-    return res_df.merge(title_map_df, on='movie_wiki_url')
+    rel_df = get_relevant_df()
+    top_df = get_top_critics_df(rel_df, review_prc=review_prc)
+    info_df = top_df[['movie_wiki_url', 'winner', 'year', 'title']].drop_duplicates()
+    critic_df = top_df.pivot(index='movie_wiki_url', columns='reviewer_url', values='score').fillna(0).reset_index()
+    critic_df = info_df.merge(critic_df, on='movie_wiki_url').drop('movie_wiki_url', axis=1)
+
+    df = awards_df.merge(critic_df.drop('winner', axis=1), on=['year', 'title'], how='left')
+    return df[df.year >= 1960][df.year <= 2018]

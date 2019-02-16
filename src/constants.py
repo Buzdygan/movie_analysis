@@ -28,6 +28,9 @@ CRITICS_BEST_FILM = 'critics'
 CRITICS_BEST_FOREIGN_FILM = 'critics_foreign'
 
 
+AWARD_COLUMNS = [CANNES_BEST_FILM, PGA_BEST_FILM, SAG_BEST_FILM, DGA_BEST_FILM, GLOBES_BEST_DRAMA, GLOBES_BEST_COMEDY, BAFTA_BEST_FILM, CRITICS_BEST_FILM]
+
+
 Review = namedtuple('Review', ['movie_url', 'reviewer_type', 'reviewer_name', 'reviewer_url', 'fresh', 'original_score', 'text', 'date'])
 
 TYPE_CRITIC = 'critic'
