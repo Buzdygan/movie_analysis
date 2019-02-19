@@ -106,4 +106,4 @@ def get_movie_df(category=OSCARS_BEST_FILM, review_prc=0.75):
     critic_df = info_df.merge(critic_df, on='movie_wiki_url').drop('movie_wiki_url', axis=1)
 
     df = awards_df.merge(critic_df.drop('winner', axis=1), on=['year', 'title'], how='left')
-    return df[df.year >= 1960][df.year <= 2018]
+    return df[df.year >= 1960]

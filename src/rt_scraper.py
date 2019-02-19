@@ -16,7 +16,6 @@ class BaseReviews(object):
         self.movie_url = movie_url
 
     def getReviews(self):
-        # return [Review('movie_url', TYPE_CRITIC, 'cname', 'curl', True, 0.23, 'text', datetime.date(2013,2,3))]
         reviews = []
         for page_num in range(1, 1000):
             page_url = self.getReviewUrl(page_num) 

@@ -1,5 +1,5 @@
-import warnings
 import sys
+import warnings
 from itertools import product
 
 import pandas as pd
@@ -176,68 +176,8 @@ class SimpleEnsemblePredictor(BasePredictor):
         return sum(results) / weight_sum
 
 
-class EnsemblePredictor(BasePredictor):
-    PREDICTORS = [P(pred_cls, tp)
-                  for tp in [AWARDS]
-                  for pred_cls in [RandomForestPredictor,
-                                   LogisticPredictor,
-                                   SVCPredictor,
-                                   SGDPredictor
-                                  ]
-                 ]
-
-    def predict(self):
-        train_df, test_df = self.get_children_data()
-        """
-        LINEAR COMBINATION
-        model = LinearRegression().fit(*self.xy(train_df))
-        columns = self.xy(train_df)[0].columns
-        for pname, coeff in zip(list(columns), list(model.coef_)):
-            print(f"        {pname}: {coeff:.2}")
-        return pd.Series(model.predict(self.xy(test_df)[0]))
-        """
-
-        model = LogisticRegression().fit(*self.xy(train_df))
-        columns = self.xy(train_df)[0].columns
-        for pname, coeff in zip(list(columns), list(model.coef_[0])):
-            print(f"        {pname}: {coeff:.2}")
-        return pd.Series(model.predict_proba(self.xy(test_df)[0])[:, 1])
-
-    def get_children_data(self):
-        year_dfs = []
-        for year_train_df, year_test_df, year_df in iterate_cases(self._train_df):
-            for predictor_cls in self.PREDICTORS:
-                predictor = predictor_cls(year_train_df,
-                                          year_test_df,
-                                          choose_hparams(predictor_cls, year_train_df))
-                year_df[predictor.NAME] = predictor.predict()
-            year_dfs.append(year_df)
-        train_df = pd.concat(year_dfs)
-
-        test_df = self._test_df.copy()[['year', 'title', 'winner']].reset_index()
-        for predictor_cls in self.PREDICTORS:
-            predictor = predictor_cls(self._train_df,
-                                      self._test_df,
-                                      choose_hparams(predictor_cls, self._train_df))
-            test_df[predictor.NAME] = predictor.predict()
-
-        # Normalize
-        for predictor_cls in self.PREDICTORS:
-            col = predictor_cls.__name__
-            """
-            nscore = get_avg_norm_score(train_df, col)
-            accuracy = get_accuracy(train_df, col)
-            print(f"    {col}: nscore: {nscore:.2}, accuracy: {accuracy:.2}")
-            """
-            joined_df = pd.concat([train_df, test_df])
-            mean = joined_df[col].mean()
-            std = joined_df[col].std()
-            train_df[col] = train_df[col].transform(lambda x: (x - mean) / std)
-            test_df[col] = test_df[col].transform(lambda x: (x - mean) / std)
-        return train_df, test_df
-
-
 def evaluate(data_df):
+    data_df = data_df[data_df.year <= 2018]
     year_dfs = []
     for ytrain_df, ytest_df, ydf in iterate_cases(data_df, "Outer Evaluation"):
         wa_predictor = SimpleEnsemblePredictor(ytrain_df, ytest_df)
@@ -249,12 +189,18 @@ def evaluate(data_df):
     avg_nscore = get_avg_norm_score(result_df)
     accuracy = get_accuracy(result_df)
     print(f"Avg Nscore: {avg_nscore:.2}, Rank Score: {avg_rscore:.2}, Accuracy: {accuracy:.2}")
-    return result_df
+    result_df.to_csv(f'results_critics_{EVALUATION_START_YEAR}.csv')
 
+
+def predict_2019(data_df):
+    train_df, test_df = data_df[data_df.year <= 2018], data_df[data_df.year == 2019].reset_index()
+    test_df[PRED_SCORE_COL] = SimpleEnsemblePredictor(train_df, test_df).predict()
+    print(test_df)
+    test_df.to_csv(f'predictions_2019_awards_{EVALUATION_START_YEAR}.csv')
 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     movie_df = get_movie_df()
-    result_df = evaluate(movie_df)
-    result_df.to_csv('results_awards_1960.csv')
+    # evaluate(movie_df)
+    predict_2019(movie_df)
